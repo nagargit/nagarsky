@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import gi
 gi.require_version('Gtk', '3.0')
-# gi.require_version('Notify', '0.7') # Removed: Desktop notifications replaced by in-app indicator
-from gi.repository import Gtk, Gdk, GLib # Notify removed
+# Note: Notify is not imported as desktop notifications are replaced by in-app indicators.
+# If you still see Notify warnings, ensure your local file matches this Canvas.
+from gi.repository import Gtk, Gdk, GLib
 import subprocess
 import os
 import threading
@@ -13,14 +14,6 @@ class KernelManager(Gtk.Window):
         Gtk.Window.__init__(self, title="Fedora Kernel Manager")
         self.set_border_width(10)
         self.set_default_size(1200, 700)
-
-        # Desktop notifications are now replaced by in-app indicator
-        # try:
-        #     Notify.init("Fedora Kernel Manager")
-        #     self.notifications_enabled = True
-        # except GLib.Error:
-        #     self.notifications_enabled = False
-        #     self.log_terminal("Warning: Desktop notifications are not available. Please install libnotify-dev or similar package.")
 
         # --- UI Elements ---
         self.liststore = Gtk.ListStore(str)
@@ -180,11 +173,17 @@ class KernelManager(Gtk.Window):
     def _show_kernel_details_in_dialog(self, kernel_name):
         """Fetches and displays detailed information for the selected kernel in a dialog."""
         def _callback(success, output):
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
-                                       Gtk.ButtonsType.OK, f"تفاصيل النواة: {kernel_name}")
+            # Using keyword arguments for Gtk.MessageDialog constructor
+            dialog = Gtk.MessageDialog(
+                parent=self,
+                modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK, # This is fine for MessageDialog
+                text=f"تفاصيل النواة: {kernel_name}"
+            )
             
             if success and output:
-                dialog.format_secondary_text(output)
+                dialog.format_secondary_text(output) # Reverted to format_secondary_text
             else:
                 dialog.format_secondary_text(f"تعذر الحصول على تفاصيل النواة: {kernel_name}\n\nيرجى التحقق من سجل الطرفية لمزيد من التفاصيل.")
             
@@ -312,11 +311,17 @@ class KernelManager(Gtk.Window):
 
         kernel = selected[0]
         version = kernel.replace("kernel-", "")
-        path = f"/boot/vmlinuz-{version}"
+        path = f"/boot/vmlinuz-{version}" # Path to the kernel vmlinuz file
 
-        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                   Gtk.ButtonsType.YES_NO, "هل تريد تعيين هذا الكيرنل كافتراضي؟")
-        dialog.format_secondary_text(f"سيتم تعيين '{kernel}' كيرنل افتراضي. ستحتاج إلى إعادة تشغيل النظام لتطبيق التغيير.")
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="هل تريد تعيين هذا الكيرنل كافتراضي؟",
+            secondary_text=f"سيتم تعيين '{kernel}' كيرنل افتراضي. ستحتاج إلى إعادة تشغيل النظام لتطبيق التغيير."
+        )
         response = dialog.run()
         dialog.destroy()
 
@@ -333,9 +338,15 @@ class KernelManager(Gtk.Window):
             self.show_info("الرجاء تحديد أنوية لحذفها.")
             return
 
-        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                   Gtk.ButtonsType.YES_NO, "هل تريد حذف الأنوية المحددة؟")
-        dialog.format_secondary_text("قد يؤثر حذف الأنوية على استقرار النظام.\n\n" + "\n".join(kernels))
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="هل تريد حذف الأنوية المحددة؟",
+            secondary_text="قد يؤثر حذف الأنوية على استقرار النظام.\n\n" + "\n".join(kernels)
+        )
         response = dialog.run()
         dialog.destroy()
 
@@ -363,9 +374,15 @@ class KernelManager(Gtk.Window):
                 return
 
             kernels_to_remove = output.splitlines()
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                       Gtk.ButtonsType.YES_NO, "هل تريد حذف الأنوية القديمة؟")
-            dialog.format_secondary_text("قد يؤثر حذف الأنوية القديمة على خيارات التمهيد.\n\n" + "\n".join(kernels_to_remove))
+            # Using keyword arguments for Gtk.MessageDialog constructor
+            dialog = Gtk.MessageDialog(
+                parent=self,
+                modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+                message_type=Gtk.MessageType.QUESTION,
+                buttons=Gtk.ButtonsType.YES_NO,
+                text="هل تريد حذف الأنوية القديمة؟",
+                secondary_text="قد يؤثر حذف الأنوية القديمة على خيارات التمهيد.\n\n" + "\n".join(kernels_to_remove)
+            )
             response = dialog.run()
             dialog.destroy()
 
@@ -394,7 +411,7 @@ class KernelManager(Gtk.Window):
             True
         )
         clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-        clipboard.set_text(text, -1)
+        clipboard.set_text(text, -1) # -1 means length is unknown, Gtk will calculate it
         self.show_info("تم نسخ مخرج الطرفية إلى الحافظة.")
         self.update_status_indicator("success", "تم نسخ مخرج الطرفية.")
 
@@ -461,11 +478,16 @@ class KernelManager(Gtk.Window):
                 return
 
             # Create a dialog to select the index
-            dialog = Gtk.Dialog(title="تعيين إدخال التمهيد الافتراضي", parent=self,
-                                flags=Gtk.DialogFlags.MODAL, buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
+            # Using keyword arguments for Gtk.Dialog constructor and add_buttons method
+            dialog = Gtk.Dialog(
+                title="تعيين إدخال التمهيد الافتراضي",
+                parent=self,
+                modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+                destroy_with_parent=True # Add this for better dialog management
+            )
             dialog.set_default_size(400, 300)
             
-            label = Gtk.Label("الرجاء اختيار فهرس إدخال التمهيد الافتراضي:")
+            label = Gtk.Label(label="الرجاء اختيار فهرس إدخال التمهيد الافتراضي:")
             dialog.get_content_area().pack_start(label, False, False, 5)
 
             liststore = Gtk.ListStore(str, str) # Index, Title
@@ -482,6 +504,9 @@ class KernelManager(Gtk.Window):
             scrollable.set_vexpand(True)
             scrollable.add(treeview)
             dialog.get_content_area().pack_start(scrollable, True, True, 5)
+            
+            # Add buttons using add_buttons method
+            dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
             
             dialog.show_all()
             
@@ -501,7 +526,7 @@ class KernelManager(Gtk.Window):
                                        error_msg=f"فشل تعيين إدخال التمهيد الافتراضي إلى الفهرس {selected_index}.",
                                        show_output=False,
                                        use_shell=False,
-                                       callback=lambda s, o: self.show_info(f"تم تعيين إدخال التمهيد الافتراضي بنجاح إلى الفهرس {selected_index}. أعد تشغيل النظام لتطبيق التغييرات.") if s else None)
+                                       callback=lambda s, o: self.show_info(f"تم تعيين إدخال التمهيد الافتراضي بنجاح إلى الفهرس {selected_index}. أعد تشغيل النظام لتطبيق التغييرات."))
             else:
                 self.show_info("لم يتم اختيار فهرس.")
 
@@ -589,8 +614,13 @@ class KernelManager(Gtk.Window):
         """Opens a dialog to manage DNF settings like installonly_limit."""
         config_path = "/etc/dnf/dnf.conf"
         
-        dialog = Gtk.Dialog(title="إعدادات DNF", parent=self,
-                            flags=Gtk.DialogFlags.MODAL, buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        # Using keyword arguments for Gtk.Dialog constructor and add_buttons method
+        dialog = Gtk.Dialog(
+            title="إعدادات DNF",
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            destroy_with_parent=True
+        )
         dialog.set_default_size(400, 200)
         
         content_area = dialog.get_content_area()
@@ -640,6 +670,7 @@ class KernelManager(Gtk.Window):
                                callback=lambda s, o: _read_limit_callback(s, o),
                                raise_on_error=False) # Important: Don't raise error if grep doesn't find match
 
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
         dialog.show_all()
         response = dialog.run()
         
@@ -688,9 +719,15 @@ class KernelManager(Gtk.Window):
                 return
 
             # Proceed to create snapshot
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                       Gtk.ButtonsType.YES_NO, "هل تريد إنشاء لقطة Btrfs (snapshot) الآن؟")
-            dialog.format_secondary_text("سيتم إنشاء لقطة لنظام الجذر. هذا مفيد قبل إجراء تغييرات كبيرة على النواة.")
+            # Using keyword arguments for Gtk.MessageDialog constructor
+            dialog = Gtk.MessageDialog(
+                parent=self,
+                modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+                message_type=Gtk.MessageType.QUESTION,
+                buttons=Gtk.ButtonsType.YES_NO,
+                text="هل تريد إنشاء لقطة Btrfs (snapshot) الآن؟",
+                secondary_text="سيتم إنشاء لقطة لنظام الجذر. هذا مفيد قبل إجراء تغييرات كبيرة على النواة."
+            )
             response = dialog.run()
             dialog.destroy()
 
@@ -746,9 +783,15 @@ class KernelManager(Gtk.Window):
 
     def remove_old_rescue(self, widget):
         """Removes old rescue kernel files from /boot, keeping the current kernel's rescue files."""
-        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                   Gtk.ButtonsType.YES_NO, "هل تريد إزالة ملفات rescue القديمة؟")
-        dialog.format_secondary_text("سيتم حذف ملفات rescue المرتبطة بالأنوية القديمة فقط. سيتم الاحتفاظ بملفات rescue الخاصة بالنواة الحالية.")
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="هل تريد إزالة ملفات rescue القديمة؟",
+            secondary_text="سيتم حذف ملفات rescue المرتبطة بالأنوية القديمة فقط. سيتم الاحتفاظ بملفات rescue الخاصة بالنواة الحالية."
+        )
         response = dialog.run()
         dialog.destroy()
 
@@ -802,9 +845,15 @@ class KernelManager(Gtk.Window):
             self.show_info("لا توجد ملفات rescue قديمة مرتبطة بأنوية سابقة للحذف.")
             return
 
-        confirm_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.QUESTION,
-                                           Gtk.ButtonsType.YES_NO, "تأكيد حذف الملفات التالية:")
-        confirm_dialog.format_secondary_text("سيتم حذف ملفات rescue التالية:\n" + "\n".join(files_to_remove))
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        confirm_dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="تأكيد حذف الملفات التالية:",
+            secondary_text="سيتم حذف ملفات rescue التالية:\n" + "\n".join(files_to_remove)
+        )
         confirm_response = confirm_dialog.run()
         confirm_dialog.destroy()
 
@@ -839,14 +888,26 @@ class KernelManager(Gtk.Window):
         about_dialog.destroy()
 
     def show_info(self, message):
-        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
-                                   Gtk.ButtonsType.OK, message)
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text=message
+        )
         dialog.run()
         dialog.destroy()
 
     def show_error(self, message):
-        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR,
-                                   Gtk.ButtonsType.OK, message)
+        # Using keyword arguments for Gtk.MessageDialog constructor
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            modal=True, # Use modal=True instead of flags=Gtk.DialogFlags.MODAL
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=message
+        )
         dialog.run()
         dialog.destroy()
 
